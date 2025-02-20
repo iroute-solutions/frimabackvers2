@@ -11,13 +11,13 @@ AWS.config.update(awsConfig);
 const dynamoDB = new AWS.DynamoDB.DocumentClient();
 
 //TODO: listado de contratos
-app.http( "integracion_listarContratos",{
+app.http("integracion_listarContratos", {
     methods: ["GET"],
     authLevel: "anonymous",
-    handler: async ( request, context ) => {
+    handler: async (request, context) => {
         try {
             const empresaID = request.query.get("empresaID")
-            if (!empresaID) {    
+            if (!empresaID) {
                 return {
                     status: 400,
                     headers: {
@@ -62,28 +62,29 @@ app.http( "integracion_listarContratos",{
             };
         } catch (error) {
             console.error('Error al realizar la consulta:', error);
-                return {
-                    status: 400,
-                    headers: {
-                        "Content-Type": "application/json",
-                    },
-                    body: JSON.stringify({
-                        message: "Error durante la busqueda de contratos.",
-                    }),
-                };
+            return {
+                status: 400,
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    message: "Error durante la busqueda de contratos.",
+                }),
+            };
         }
     }
 });
 //TODO: guardar contrato || incluyendo anexos
-app.http( "integracion_guardarContrato", {
+app.http("integracion_guardarContrato", {
     methods: ["POST"],
     authLevel: "anonymous",
-    handler: async ( request, _ ) => {
+    handler: async (request, _) => {
         try {
             const {
                 anexos,
                 empresaID,
-                motivo,
+                titulo,
+                descripcion,
                 contratoID,
                 contractDetails,
                 version
@@ -97,13 +98,13 @@ app.http( "integracion_guardarContrato", {
                     SK: contratoID,
                     Anexos: anexos,
                     creado_en: new Date().toISOString(),
-                    motivo,
+                    titulo, descripcion,
                     version,
                     contractDetails
                 },
                 ConditionExpression: "attribute_not_exists(PK) AND attribute_not_exists(SK)", // Garantiza que la cédula no exista
             }
-    
+
             // Guardar el usuario en DynamoDB
             await dynamoDB.put(params).promise();
 
@@ -117,7 +118,7 @@ app.http( "integracion_guardarContrato", {
                 }),
             };
         } catch (error) {
-            console.log( "Error!: " + error );
+            console.log("Error!: " + error);
             return {
                 status: 400,
                 headers: {
@@ -132,10 +133,10 @@ app.http( "integracion_guardarContrato", {
 });
 
 //* listar contrato por ID
-app.http( "integracion_listarContratoPorID", {
+app.http("integracion_listarContratoPorID", {
     methods: ["GET"],
     authLevel: "anonymous",
-    handler: async ( request, _ ) => {
+    handler: async (request, _) => {
         try {
             const empresaID = request.query.get("empresaID");
             const contratoID = request.query.get("contratoID");
@@ -160,7 +161,7 @@ app.http( "integracion_listarContratoPorID", {
                 },
             };
             const result = await dynamoDB.get(params).promise();
-            console.log( result );
+            console.log(result);
             if (!result.Item) {
                 return {
                     status: 404,
