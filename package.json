@@ -1,0 +1,27 @@
+{
+  "name": "",
+  "version": "1.0.0",
+  "description": "",
+  "main": "src/functions/*.js",
+  "scripts": {
+    "start": "func start",
+    "test": "echo \"No tests yet...\""
+  },
+  "dependencies": {
+    "@anzp/azure-function-multipart": "^3.1.0",
+    "@azure/functions": "^4.0.0",
+    "aws-sdk": "^2.1692.0",
+    "axios": "^1.7.7",
+    "bcrypt": "^5.1.1",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "jsonwebtoken": "^9.0.2",
+    "oracledb": "^6.6.0",
+    "uuid": "^11.0.3"
+  },
+  "devDependencies": {
+    "@types/react": "^17.0.83",
+    "@types/react-dom": "^17.0.26",
+    "azure-functions-core-tools": "^4.x"
+  }
+}
