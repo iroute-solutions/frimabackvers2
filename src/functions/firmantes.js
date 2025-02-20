@@ -1,8 +1,13 @@
 const { app } = require("@azure/functions");
 const AWS = require("aws-sdk");
-const { awsConfig } = require("../../awsConfig");
-const { hashPassword } = require("../utils");
 require("dotenv").config();
+const awsConfig = {
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+    region: process.env.AWS_REGION,
+}
+const { hashPassword } = require("../utils");
+
 AWS.config.update(awsConfig);
 const dynamoDB = new AWS.DynamoDB.DocumentClient();
 

@@ -1,9 +1,13 @@
 const { app } = require("@azure/functions");
 const AWS = require("aws-sdk");
-const { awsConfig } = require("../../awsConfig");
+require("dotenv").config();
+const awsConfig = {
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+    region: process.env.AWS_REGION,
+}
 const { v4: uuidv4 } = require("uuid"); // Importar uuid
 const jwt = require('jsonwebtoken');
-require("dotenv").config();
 
 const API_KEY_UANATACA = process.env.API_KEY_UANATACA;
 const API_URL_UNATACA = process.env.API_URL_UNATACA;

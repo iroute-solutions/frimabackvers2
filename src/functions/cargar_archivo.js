@@ -1,7 +1,15 @@
 const { app } = require("@azure/functions");
 const AWS = require("aws-sdk");
-const { awsConfig } = require("../../awsConfig");
 require("dotenv").config();
+// TODO: NO UTILIZAR EL ARCHIVO awsConfig.js
+// TODO: usar las variables de entorno de la función
+// const { awsConfig } = require("../../awsConfig");
+const awsConfig = {
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+    region: process.env.AWS_REGION,
+}
+
 AWS.config.update(awsConfig);
 const parseMultipartFormData = require("@anzp/azure-function-multipart").default;
 
