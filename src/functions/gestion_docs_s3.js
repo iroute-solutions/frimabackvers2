@@ -18,7 +18,7 @@ const s3 = new AWS.S3();
 
 
 //* Leer documento del bucket
-app.http("integracion_verDocID", {
+app.http("integracion_verDoc", {
     methods: ["GET"],
     authLevel: "anonymous",
     handler: async (request, context) => {

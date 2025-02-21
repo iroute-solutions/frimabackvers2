@@ -1,4 +1,4 @@
-export const selectedRol = ( type = "") => {
+const selectedRol = ( type = "") => {
     switch( type ){
         case 'superusuario':
             return "ROL#SUPERUSUARIO"
@@ -12,3 +12,7 @@ export const selectedRol = ( type = "") => {
             return "ROL#DESCONOCIDO"
     }
 }
+
+module.exports = {
+    selectedRol
+};
