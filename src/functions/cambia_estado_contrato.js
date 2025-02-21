@@ -57,7 +57,6 @@ app.http("integracion_estadoContratoFirma", {
             };
 
             const data = await dynamo.get(params).promise();
-            console.log(data);
             const { contractDetails } = data.Item;
 
             // Cambiar el estado
