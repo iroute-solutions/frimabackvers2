@@ -35,7 +35,10 @@ app.http("integracion_anadirQR", {
                             "numero_pagina": 1,
                             "contenido_qr": "HOLA PRUEBA"
                         }
-                    }
+                    },
+                    "destinatario": [""],
+                    "asunto": "",
+                    "mensaje": ""
                 }
              */
 
@@ -111,8 +114,7 @@ app.http("integracion_anadirQR", {
                         }),
                     };
                 }
-            }
-            );
+            });
 
             const bucketName = BUCKET_NAME;
 

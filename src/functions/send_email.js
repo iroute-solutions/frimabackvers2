@@ -5,45 +5,86 @@ const awsConfig = {
     secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
     region: process.env.AWS_REGION,
 }
-const jwt = require('jsonwebtoken');
+const nodemailer = require("nodemailer");
 require("dotenv").config();
 
 //* Send email
-// app.http(async (req, res) => {
-//     const { email, subject, message } = req.query;
-//     const token = req.headers['x-functions-key'];
-//     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-//     if (decoded.email !== email) {
-//         return res.status(401).json({ message: "Unauthorized" });
-//     }
+app.http("integracion_sendEmail",{
+    methods: ["POST"],
+    authLevel: "anonymous",
+    handler: async (req, res) => {
+        const { destinatarios, asunto, mensaje } = req.query;
+        // Validar que el destinatarios sea un arreglo de correos
+        if (!Array.isArray(destinatarios)) {
+            return {
+                status: 400,
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    message: `El campo destinatario debe ser un arreglo.`,
+                }),
+            };
+        }
 
-//     const ses = new AWS.SES(awsConfig);
-//     const params = {
-//         Destination: {
-//             ToAddresses: [email],
-//         },
-//         Message: {
-//             Body: {
-//                 Text: {
-//                     Charset: "UTF-8",
-//                     Data: message,
-//                 },
-//             },
-//             Subject: {
-//                 Charset: "UTF-8",
-//                 Data: subject,
-//             },
-//         },
-//         Source: ""
-//     };
+        destinatarios.forEach((email) => {
+            if (!mailRegex.test(email)) {
+                return {
+                    status: 400,
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({
+                        message: `El email ${email} no es válido.`,
+                    }),
+                };
+            }
+        });
+        try {
+            const mailOptions = {
+                from: 'crhighlander94@gmail.com',
+                to: destinatarios,
+                subject: asunto,
+                html: `<p>${mensaje}</p>`
+            };
 
-//     try {
-//         await ses.sendEmail(params).promise();
-//         return res.status(200).json({ message: "Email sent" });
-//     }
-//     catch (error) {
-//         return res.status(500).json({ message: "Internal server error" });
-//     }
-// });
-
-
+            const transporter = nodemailer.createTransport({
+                host: process.env.SMTP_HOST,
+                port: process.env.SMTP_PORT,
+                secure: true, // true for port 465, false for other ports
+                auth: {
+                    user: process.env.SMTP_USER,
+                    pass: process.env.SMTP_PASS,
+                },
+            });
+            transporter.sendMail(mailOptions, function (error, info) {
+                if (error) {
+                    console.log('Error:', error);
+                } else {
+                    console.log('Email sent:', info.response);
+                }
+            });
+            return {
+                status: 200,
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    message: "El archivo fue firmado y enviado exitosamente.",
+                }),
+            };
+        }
+        catch (error) {
+            return {
+                status: 500,
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    message: "Hubo un error al enviar el correo.",
+                    details: err.message,
+                }),
+            };
+        }
+    }
+});

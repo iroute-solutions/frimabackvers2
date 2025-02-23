@@ -10,7 +10,6 @@ const awsConfig = {
 AWS.config.update(awsConfig);
 const dynamoDB = new AWS.DynamoDB.DocumentClient();
 
-//TODO: listado de contratos
 app.http("integracion_listarContratos", {
     methods: ["GET"],
     authLevel: "anonymous",
@@ -74,7 +73,7 @@ app.http("integracion_listarContratos", {
         }
     }
 });
-//TODO: guardar contrato || incluyendo anexos
+
 app.http("integracion_guardarContrato", {
     methods: ["POST"],
     authLevel: "anonymous",
@@ -97,7 +96,7 @@ app.http("integracion_guardarContrato", {
                     PK: empresaID,
                     SK: contratoID,
                     Anexos: anexos,
-                    creado_en: new Date().toISOString(),
+                    creado_en: new Date((new Date()).getTime() - 5 * 60 * 60 * 1000).toISOString(),
                     titulo, descripcion,
                     version,
                     contractDetails
@@ -114,7 +113,7 @@ app.http("integracion_guardarContrato", {
                     "Content-Type": "application/json",
                 },
                 body: JSON.stringify({
-                    message: "Contrato registrado con éxito.",
+                    message: "Contrato registrado con éxito."
                 }),
             };
         } catch (error) {
@@ -201,7 +200,110 @@ app.http("integracion_listarContratoPorID", {
     }
 });
 
-//TODO: editar contrato??? => solo los que no se encuentren firmados
-//TODO: añadir firmante
+// TODO: añadir ubicaciones de firmas y actualizar a pendiente
+app.http("integracion_ubicacionFirmasyEstado", {
+    methods: ["PATCH"],
+    authLevel: "anonymous",
+    handler: async( request, _ ) => {
+        try {
+            
+            const {
+                contrato_id,
+                empresa_id,
+                ubicacionFirmanteLegal,
+                ubicacionFirmante
+            } = await request.json();
 
-//TODO: realizar firma || envio de correo
+            // Validar campos obligatorios
+            if (!contrato_id || !empresa_id
+                || !ubicacionFirmanteLegal || !ubicacionFirmante
+            ) {
+                const missingFields = [];
+                const requiredFields = [
+                    { field: contrato_id, name: "contrato_id" },
+                    { field: empresa_id, name: "empresa_id" },
+                    { field: ubicacionFirmanteLegal, name: "ubicacionFirmanteLegal" },
+                    { field: ubicacionFirmante, name: "ubicacionFirmante" },
+                ];
+
+                requiredFields.forEach(({ field, name }) => {
+                    if (!field) missingFields.push(name);
+                });
+
+
+                if (missingFields.length > 0) {
+                    return {
+                        status: 400,
+                        headers: {
+                            "Content-Type": "application/json",
+                        },
+                        body: JSON.stringify({
+                            message: `Faltan campos requeridos. Campos faltantes: ${missingFields.join(", ")}`,
+                            missingFields,
+                        }),
+                    };
+                }
+            }
+
+            // Guardar en la tabla de DynamoDB
+            const params = {
+                TableName: "ContratosFirmas",
+                Key: {
+                    PK: `CLIENTE#${empresa_id}`, // Asegúrate de obtener empresaID
+                    SK: `CONTRACT#${contrato_id}`
+                }
+            };
+
+            const data = await dynamoDB.get(params).promise();
+            const { contractDetails } = data.Item;
+
+            // Cambiar el estado
+            contractDetails.status = "pending";
+
+            // Actualizar el contrato
+            const updateParams = {
+                TableName: "ContratosFirmas",
+                Key: {
+                    PK: `CLIENTE#${empresa_id}`,
+                    SK: `CONTRACT#${contrato_id}`,
+                },
+                UpdateExpression: `
+                    SET
+                        contractDetails = :contractDetails,
+                        ubicacion_firma_firmante = :firma, 
+                        ubicacion_firma_firmante_legal = :firmaLegal
+                `,
+                ExpressionAttributeValues: {
+                    ":contractDetails": contractDetails,
+                    ":firmaLegal": ubicacionFirmanteLegal,
+                    ":firma": ubicacionFirmante,
+                },
+            };
+
+            await dynamoDB.update(updateParams).promise();
+
+            return {
+                status: 200,
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    message: "Estado del contrato actualizado.",
+                }),
+            };
+        } catch (err) {
+            return {
+                status: 500,
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    message: "Error al cambiar el estado del contrato.",
+                    details: err.message,
+                }),
+            };
+        }
+    }
+});
+
+//TODO: editar contrato??? => solo los que no se encuentren firmados
