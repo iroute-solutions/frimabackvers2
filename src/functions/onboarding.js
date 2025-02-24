@@ -25,7 +25,7 @@ app.http("integracion_registroCliente", {
         // Leer el cuerpo de la solicitud
         const {
             razon_social,
-            identificacion_cliente,
+            identificacion_empresa,
             type, //* canal, empresa
             nombre_empresa, //*canal|empresa
             nombres_representante,
@@ -35,12 +35,12 @@ app.http("integracion_registroCliente", {
             password,
         } = await request.json();
 
-        const createdAt = new Date().toISOString();
+        const createdAt = new Date((new Date()).getTime() - 5 * 60 * 60 * 1000).toISOString();
 
         // Validar campos obligatorios
         if (
             !razon_social ||
-            !identificacion_cliente ||
+            !identificacion_empresa ||
             !type ||
             !nombre_empresa ||
             !nombres_representante ||
@@ -70,12 +70,12 @@ app.http("integracion_registroCliente", {
                     Put: {
                         TableName: "EmpresaUsuariosFirma",
                         Item: {
-                            PK: `CLIENTE#${identificacion_cliente}`,
-                            SK: `METADATA#${identificacion_cliente}`,
+                            PK: `CLIENTE#${identificacion_empresa}`,
+                            SK: `METADATA#${identificacion_empresa}`,
                             Tipo: type,
                             razon_social,
                             nombre: nombre_empresa,
-                            identificacion: identificacion_cliente,
+                            identificacion: identificacion_empresa,
                             createdAt
                         },
                         ConditionExpression: "attribute_not_exists(PK) AND attribute_not_exists(SK)", // Garantiza que la cédula no exista
@@ -86,7 +86,7 @@ app.http("integracion_registroCliente", {
                     Put: {
                         TableName: "EmpresaUsuariosFirma",
                         Item: {
-                            PK: `CLIENTE#${identificacion_cliente}`,
+                            PK: `CLIENTE#${identificacion_empresa}`,
                             SK: `USER#${identificacion_representante}`,
                             Tipo: `usuario_${ type.toLocaleLowerCase() }`,
                             nombre: nombres_representante,

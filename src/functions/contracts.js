@@ -139,7 +139,7 @@ app.http("integracion_listarContratoPorID", {
         try {
             const empresaID = request.query.get("empresaID");
             const contratoID = request.query.get("contratoID");
-
+            
             if (!empresaID || !contratoID) {
                 return {
                     status: 400,
@@ -155,12 +155,80 @@ app.http("integracion_listarContratoPorID", {
             const params = {
                 TableName: 'ContratosFirmas',
                 Key: {
-                    PK: empresaID,
-                    SK: contratoID,
+                    PK: `CLIENTE#${empresaID}`,
+                    SK: `CONTRACT#${contratoID}`,
                 },
             };
             const result = await dynamoDB.get(params).promise();
-            console.log(result);
+            
+            if (!result.Item) {
+                return {
+                    status: 404,
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({
+                        message: "No se encontró el contrato.",
+                        empresaID,
+                        contratoID
+                    }),
+                };
+            }
+            const { firmante, ...rest } = result.Item;
+            return {
+                status: 200,
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    message: "Contrato encontrado.",
+                    data: rest,
+                }),
+            };
+        } catch (error) {
+            console.error('Error al realizar la consulta:', error);
+            return {
+                status: 400,
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    message: "Error durante la busqueda de contratos.",
+                }),
+            };
+        }
+    }
+});
+
+app.http("integracion_validarIdentificacionFirmantePorContrato", {
+    methods: ["GET"],
+    authLevel: "anonymous",
+    handler: async (request, _) => {
+        try {
+            const empresaID = request.query.get("empresaID");
+            const contratoID = request.query.get("contratoID");
+            const documentoIdentidadFirmante = request.query.get("documentoIdentidadFirmante");
+            
+            if (!empresaID || !contratoID || !documentoIdentidadFirmante) {
+                return {
+                    status: 400,
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({
+                        message: "Falta el ID de la empresa o el ID del contrato o el Documento de Identidad del firmante.",
+                    }),
+                };
+            }
+
+            const params = {
+                TableName: 'ContratosFirmas',
+                Key: {
+                    PK: `CLIENTE#${empresaID}`,
+                    SK: `CONTRACT#${contratoID}`,
+                },
+            };
+            const result = await dynamoDB.get(params).promise();
             if (!result.Item) {
                 return {
                     status: 404,
@@ -175,14 +243,28 @@ app.http("integracion_listarContratoPorID", {
                 };
             }
 
+            const { firmante } = result.Item;
+            if (firmante.split('#')[1] !== documentoIdentidadFirmante.trim()) {
+                return {
+                    status: 404,
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({
+                        message: "El firmante no coincide con el documento de identidad.",
+                        data: false,
+                        documentoIdentidadFirmante,
+                    }),
+                };
+            }
             return {
                 status: 200,
                 headers: {
                     "Content-Type": "application/json",
                 },
                 body: JSON.stringify({
-                    message: "Contrato encontrado.",
-                    data: result.Item,
+                    message: "Firmante validado con exito.",
+                    data: true
                 }),
             };
         } catch (error) {
@@ -208,22 +290,24 @@ app.http("integracion_ubicacionFirmasyEstado", {
         try {
             
             const {
-                contrato_id,
-                empresa_id,
+                contratoID,
+                empresaID,
                 ubicacionFirmanteLegal,
-                ubicacionFirmante
+                ubicacionFirmante,
+                firmante
             } = await request.json();
 
             // Validar campos obligatorios
-            if (!contrato_id || !empresa_id
-                || !ubicacionFirmanteLegal || !ubicacionFirmante
+            if (!contratoID || !empresaID
+                || !ubicacionFirmanteLegal || !ubicacionFirmante || !firmante
             ) {
                 const missingFields = [];
                 const requiredFields = [
-                    { field: contrato_id, name: "contrato_id" },
-                    { field: empresa_id, name: "empresa_id" },
+                    { field: contratoID, name: "contratoID" },
+                    { field: empresaID, name: "empresaID" },
                     { field: ubicacionFirmanteLegal, name: "ubicacionFirmanteLegal" },
                     { field: ubicacionFirmante, name: "ubicacionFirmante" },
+                    { field: firmante, name: "firmante" },
                 ];
 
                 requiredFields.forEach(({ field, name }) => {
@@ -249,8 +333,8 @@ app.http("integracion_ubicacionFirmasyEstado", {
             const params = {
                 TableName: "ContratosFirmas",
                 Key: {
-                    PK: `CLIENTE#${empresa_id}`, // Asegúrate de obtener empresaID
-                    SK: `CONTRACT#${contrato_id}`
+                    PK: `CLIENTE#${empresaID}`, // Asegúrate de obtener empresaID
+                    SK: `CONTRACT#${contratoID}`
                 }
             };
 
@@ -264,19 +348,21 @@ app.http("integracion_ubicacionFirmasyEstado", {
             const updateParams = {
                 TableName: "ContratosFirmas",
                 Key: {
-                    PK: `CLIENTE#${empresa_id}`,
-                    SK: `CONTRACT#${contrato_id}`,
+                    PK: `CLIENTE#${empresaID}`,
+                    SK: `CONTRACT#${contratoID}`,
                 },
                 UpdateExpression: `
                     SET
                         contractDetails = :contractDetails,
                         ubicacion_firma_firmante = :firma, 
-                        ubicacion_firma_firmante_legal = :firmaLegal
+                        ubicacion_firma_firmante_legal = :firmaLegal,
+                        firmante = :firmante
                 `,
                 ExpressionAttributeValues: {
                     ":contractDetails": contractDetails,
                     ":firmaLegal": ubicacionFirmanteLegal,
                     ":firma": ubicacionFirmante,
+                    ":firmante": firmante
                 },
             };
 

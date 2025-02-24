@@ -294,3 +294,82 @@ app.http("integracion_cargarDocs", {
         }
     }
 });
+
+//* Mover Archivos al bucket
+app.http("integracion_moverArchivos", {
+    methods: ["POST"],
+    authLevel: "anonymous",
+    handler: async (request, context) => {
+        
+        try{
+            const { movingFiles } = await request.json();
+            if( !movingFiles ){
+                return {
+                    status: 400,
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify( {
+                        message: 'No existen archivos a mover'
+                    }),
+                };
+            }
+
+            for( const file of movingFiles ){
+                const { sourceKey, destinationKey } = file;
+                await moveFileInS3( BUCKET_NAME, sourceKey, destinationKey );
+            }
+
+            return {
+                status: 200,
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    message: 'Se movieron los archivos correctamente.',
+                }),
+            }
+        } catch (err) {
+            context.error("Error en la carga del archivo", err);
+
+            return {
+                status: 500,
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    message: "Hubo un error al subir su archivo.",
+                    details: err.message,
+                }),
+            };
+        }
+    }
+});
+
+
+const moveFileInS3 = async (bucket, sourceKey, destinationKey) => {
+    try {
+      // 1. Copiar el archivo a la nueva carpeta
+      await s3
+        .copyObject({
+          Bucket: bucket,
+          CopySource: `${bucket}/${sourceKey}`, // Ruta completa del archivo original
+          Key: destinationKey, // Nueva ruta
+        })
+        .promise();
+  
+      console.log(`Archivo copiado a: ${destinationKey}`);
+  
+      // 2. Eliminar el archivo original
+      await s3
+        .deleteObject({
+          Bucket: bucket,
+          Key: sourceKey,
+        })
+        .promise();
+  
+      console.log(`Archivo eliminado: ${sourceKey}`);
+    } catch (error) {
+      console.error("Error moviendo el archivo:", error);
+    }
+};

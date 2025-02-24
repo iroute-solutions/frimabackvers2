@@ -13,7 +13,7 @@ app.http("integracion_sendEmail",{
     methods: ["POST"],
     authLevel: "anonymous",
     handler: async (req, res) => {
-        const { destinatarios, asunto, mensaje } = req.query;
+        const { destinatarios, asunto, mensaje } = await req.json();
         // Validar que el destinatarios sea un arreglo de correos
         if (!Array.isArray(destinatarios)) {
             return {
@@ -26,7 +26,7 @@ app.http("integracion_sendEmail",{
                 }),
             };
         }
-
+        const mailRegex = /^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,6}$/;
         destinatarios.forEach((email) => {
             if (!mailRegex.test(email)) {
                 return {
@@ -43,6 +43,7 @@ app.http("integracion_sendEmail",{
         try {
             const mailOptions = {
                 from: 'crhighlander94@gmail.com',
+                // from: 'crhighlander94@gmail.com',//TODO AÑADIR EL CORREO DE LA EMPRESA
                 to: destinatarios,
                 subject: asunto,
                 html: `<p>${mensaje}</p>`

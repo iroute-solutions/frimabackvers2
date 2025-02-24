@@ -17,7 +17,7 @@ app.http("integracion_logUsuariosFirmas", {
     handler: async (request, context) => {
         try {
             /**
-             *  PK: `CLIENTE#${empresaID}`,
+            *   PK: `CLIENTE#${empresaID}`,
                 SK: `USER#${firmanteID}`,
                 nombre: '',
                 apellidos: '',
@@ -25,7 +25,7 @@ app.http("integracion_logUsuariosFirmas", {
                 telefono:'',
                 creado_en:'',
                 contrato_id:''
-             */
+            */
             const { empresaID, firmanteID, nombre, apellidos, correo, telefono, contrato_id } = await request.json();
 
             // Validar campos obligatorios
@@ -71,7 +71,7 @@ app.http("integracion_logUsuariosFirmas", {
                     apellidos,
                     correo,
                     telefono,
-                    creado_en: new Date().toISOString(),
+                    creado_en: new Date((new Date()).getTime() - 5 * 60 * 60 * 1000).toISOString(),
                     contrato_id: `CONTRACT#${contrato_id}`,
                 },
             };

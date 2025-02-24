@@ -20,8 +20,11 @@ app.http("integracion_anadirQR", {
     handler: async (request, context) => {
         try {
             /**
-             * {
+            * {
                     "url_contrato_s3": "",
+                    "empresaID": "",
+                    "contratoID": "",
+                    "firmanteID": "",
                     "ubicaciones_firmas": {
                         "firmante_legal": {
                             "x": 560,
@@ -40,10 +43,17 @@ app.http("integracion_anadirQR", {
                     "asunto": "",
                     "mensaje": ""
                 }
-             */
+            */
 
             // Validar campos obligatorios
-            const { url_contrato_s3, ubicaciones_firmas, destinatario, asunto, mensaje } = await request.json();
+            const { url_contrato_s3,
+                ubicaciones_firmas,
+                destinatario,
+                asunto,
+                empresaID,
+                contratoID,
+                firmanteID,
+                mensaje } = await request.json();
             if (!url_contrato_s3 || !ubicaciones_firmas
                 || !ubicaciones_firmas.firmante || !ubicaciones_firmas.firmante_legal
                 || !ubicaciones_firmas.firmante.x || !ubicaciones_firmas.firmante.y
@@ -51,7 +61,9 @@ app.http("integracion_anadirQR", {
                 || !ubicaciones_firmas.firmante_legal.x || !ubicaciones_firmas.firmante_legal.y
                 || !ubicaciones_firmas.firmante_legal.numero_pagina
                 || !ubicaciones_firmas.firmante_legal.contenido_qr
-                || !destinatario || !asunto || !mensaje) {
+                || !destinatario || !asunto || !mensaje
+                || !empresaID || !contratoID || !firmanteID
+            ) {
                 const missingFields = [];
                 const requiredFields = [
                     { field: url_contrato_s3, name: "url_contrato_s3" },
@@ -69,6 +81,9 @@ app.http("integracion_anadirQR", {
                     { field: destinatario, name: "destinatario" },
                     { field: asunto, name: "asunto" },
                     { field: mensaje, name: "mensaje" },
+                    { field: empresaID, name: "empresaID" },
+                    { field: contratoID, name: "contratoID" },
+                    { field: firmanteID, name: "firmanteID" },
                 ];
 
                 requiredFields.forEach(({ field, name }) => {
@@ -153,8 +168,8 @@ app.http("integracion_anadirQR", {
             }
 
             const qrFirmante = await QRCode.toBuffer(ubicaciones_firmas.firmante.contenido_qr, {
-                errorCorrectionLevel: "H",
-                version: 2,
+                errorCorrectionLevel: "M",
+                version: 7,
                 width: 100,
                 margin: 1,
                 color: {
@@ -165,8 +180,8 @@ app.http("integracion_anadirQR", {
             });
 
             const qrFirmanteLegal = await QRCode.toBuffer(ubicaciones_firmas.firmante_legal.contenido_qr, {
-                errorCorrectionLevel: "H",
-                version: 2,
+                errorCorrectionLevel: "M",
+                version: 7,
                 width: 100,
                 margin: 1,
                 color: {
@@ -213,10 +228,18 @@ app.http("integracion_anadirQR", {
                 },
             });
 
-            console.log("destinatario", destinatario);
+            // TODO: colocar version 1 del contrato
+            const paramsS3Contract = {
+                Bucket: BUCKET_NAME,
+                Key: `contratos/${empresaID}/${firmanteID}/v1/${contratoID}`,
+                Body: pdfBuffer, // Buffer del PDF
+                ContentType: "application/pdf", // Tipo de archivo
+            };
+            const newData = await s3.upload(paramsS3Contract).promise();
+            console.log( newData.Location );
             // Configure the mailoptions object
             const mailOptions = {
-                from: 'alexanderaguayo43@gmail.com',
+                from: 'crhighlander94@gmail.com',
                 to: destinatario,
                 subject: asunto,
                 html: `<p>${mensaje}</p>`,
@@ -247,8 +270,6 @@ app.http("integracion_anadirQR", {
                     message: "El archivo fue firmado y enviado exitosamente.",
                 }),
             };
-
-
 
         } catch (err) {
             console.error("Error en la carga del documento", err);
