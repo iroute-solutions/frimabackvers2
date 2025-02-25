@@ -71,7 +71,7 @@ app.http("integracion_sendEmail",{
                     "Content-Type": "application/json",
                 },
                 body: JSON.stringify({
-                    message: "El archivo fue firmado y enviado exitosamente.",
+                    message: "Se envio el correo correctamente.",
                 }),
             };
         }

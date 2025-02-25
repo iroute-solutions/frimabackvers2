@@ -66,7 +66,7 @@ app.http("integracion_logUsuariosFirmas", {
                 TableName: "LogUsuariosFirmas",
                 Item: {
                     PK: `CLIENTE#${empresaID}`,
-                    SK: `USER#${firmanteID}`,
+                    SK: `USER#${firmanteID}#${(new Date()).getTime() - 5 * 60 * 60 * 1000}`,
                     nombre,
                     apellidos,
                     correo,
